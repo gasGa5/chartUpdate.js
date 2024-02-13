@@ -1,104 +1,115 @@
-const ctx = document.getElementById('myChart').getContext('2d');
+const ctx = document.getElementById('sensorChart').getContext('2d');
 const sensorChart = new Chart(ctx, {
-    type: 'bar',
+    type: 'line',
     data: {
         labels: [],
         datasets: [{
-            label: '온도 (C)',
+            label: 'Temperature (°C)',
             data: [],
-            borderColor: 'red',
-            borderWidth: 1
+            borderColor: 'red', // 선 색상 변경
+            backgroundColor: 'rgba(255, 0, 0, 0.2)', // 배경 색상 변경
+            borderWidth: 2 // 선의 두께 변경
         }, {
-            label: '습도 (%)',
+            label: 'Humidity (%)',
             data: [],
             borderColor: 'blue',
-            borderWidth: 1
+            backgroundColor: 'rgba(0, 0, 255, 0.2)',
+            borderWidth: 2
         }, {
-            label: '액화수소 유량 (L/min)',
+            label: 'Water Flow (L/min)',
             data: [],
             borderColor: 'green',
-            borderWidth: 1
+            backgroundColor: 'rgba(0, 255, 0, 0.2)',
+            borderWidth: 2
         }, {
-            label: '공기질',
+            label: 'Air Quality Index',
             data: [],
             borderColor: 'purple',
-            borderWidth: 1
+            backgroundColor: 'rgba(128, 0, 128, 0.2)',
+            borderWidth: 2
         }, {
-            label: '가스관 압력',
+            label: 'Flex Pressure',
             data: [],
             borderColor: 'orange',
-            borderWidth: 1
+            backgroundColor: 'rgba(255, 165, 0, 0.2)',
+            borderWidth: 2
         }]
     },
     options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        animation: {
-            duration: 2000,
-            easing: 'ease-in-out'
-        },
+        responsive: false,
         scales: {
             y: {
-                beginAtZero: true
-            }
-        },
-        plugins: {
-            legend: {
-                display: false
+                beginAtZero: true,
+                ticks: {
+                    // 축 눈금선 스타일 변경
+                    color: 'black',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
+                },
+                grid: {
+                    // 눈금선 스타일 변경
+                    color: 'gray',
+                    borderColor: 'black',
+                    borderWidth: 1
+                }
             },
+            x: {
+                ticks: {
+                    // x 축 눈금선 스타일 변경
+                    color: 'black',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
+                },
+                grid: {
+                    // x 축 눈금선 스타일 변경
+                    color: 'gray',
+                    borderColor: 'black',
+                    borderWidth: 1
+                }
+            }
         }
     }
 });
 
-async function fetchDataAndUpdateChart() {
-    try {
-        let data; // 변수를 선언하고 초기화
 
-        const response = await fetch('/data');
-        if (!response.ok) {
-            throw new Error('Failed to fetch data');
-        }
-        data = await response.json(); // 변수를 초기화
-        if (!data) {
-            throw new Error('Data is empty or undefined');
-        }
-        if (!Array.isArray(data)) {
-            throw new Error('Data is not an array');
-        }
-
-        // 차트 데이터 초기화
-        sensorChart.data.labels = [];
-        sensorChart.data.datasets.forEach(dataset => {
-            dataset.data = [];
-        });
-
-        // 데이터 칸 업데이트
-        document.getElementById('temperature-box').textContent = `온도: ${data.temperature} °C`;
-        document.getElementById('humidity-box').textContent = `습도: ${data.humidity} %`;
-        document.getElementById('water-flow-box').textContent = `액화수소 유량: ${data.water_flow} L/min`;
-        document.getElementById('air-quality-box').textContent = `공기질: ${data.air_quality_index}`;
-        document.getElementById('flex-pressure-box').textContent = `가스관 압력: ${data.flex_pressure}`;
-
-        // 새로운 데이터 추가
-        if (Array.isArray(data)) { // 데이터가 배열인지 확인
-            data.forEach(d => {
-                sensorChart.data.labels.push(d.time);
-                d.values.forEach((value, index) => {
-                    sensorChart.data.datasets[index].data.push(value);
-                });
-            });
-        }
-
-        // 차트 업데이트
+async function fetchData() {
+    const response = await fetch('/data');
+    const data = await response.json();
+    temperatureCheckbox = document.getElementById('temperatureCheckbox');
+    humidityCheckbox = document.getElementById('humidityCheckbox');
+    water_flowCheckbox = document.getElementById('water-flowCheckbox');
+    air_quality_indexCheckbox = document.getElementById('air-quality-indexCheckbox');
+    flex_pressureCheckbox = document.getElementById('flex-pressureCheckbox');
+    // 차트 데이터
+    sensorChart.data.labels = data.map(d => d.time);
+    function updateChart() {
+        sensorChart.data.datasets[0].data = temperatureCheckbox.checked ? data.map(d => d.temperature) : [];
+        sensorChart.data.datasets[1].data = humidityCheckbox.checked ? data.map(d => d.humidity) : [];
+        sensorChart.data.datasets[2].data = water_flowCheckbox.checked ? data.map(d => d.water_flow) : [];
+        sensorChart.data.datasets[3].data = air_quality_indexCheckbox.checked ? data.map(d => d.air_quality_index) : [];
+        sensorChart.data.datasets[4].data = flex_pressureCheckbox.checked ? data.map(d => d.flex_pressure) : [];
         sensorChart.update();
-    } catch (error) {
-        console.error('Error fetching data:', error);
     }
+    
+    // 각 체크박스에 이벤트 리스너 추가
+    temperatureCheckbox.addEventListener('change', updateChart);
+    humidityCheckbox.addEventListener('change', updateChart);
+    water_flowCheckbox.addEventListener('change', updateChart);
+    air_quality_indexCheckbox.addEventListener('change', updateChart);
+    flex_pressureCheckbox.addEventListener('change', updateChart);
+    
+    // 초기 차트 업데이트 함수 호출
+    updateChart();
+    //데이터 칸 업뎃
+    document.getElementById('temperature-box').textContent = `Temperature: ${data[0].temperature} °C`;
+    document.getElementById('humidity-box').textContent = `Humidity: ${data[0].humidity} %`;
+    document.getElementById('water-flow-box').textContent = `Water Flow: ${data[0].water_flow} L/min`;
+    document.getElementById('air-quality-box').textContent = `Air Quality Index: ${data[0].air_quality_index}`;
+    document.getElementById('flex-pressure-box').textContent = `Flex Pressure: ${data[0].flex_pressure}`;
 }
 
-
-// 페이지 로드 시 초기 업데이트 실행
-fetchDataAndUpdateChart();
-
-// 10초마다 업데이트 실행
-setInterval(fetchDataAndUpdateChart, 10000);
+setInterval(fetchData, 10000); // 10초 간격 업뎃
